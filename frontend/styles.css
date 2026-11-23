@@ -120,6 +120,9 @@ body[data-page="results"] .main > div > .panel { margin-top:1rem; }
 .test-roles { border-top:1px solid var(--line); padding-top:.7rem; margin-top:1.35rem; }
 .login-roles { display:flex; flex-wrap:wrap; gap:.45rem; }
 .login-roles button { min-height:2rem; font-size:.85rem; }
+.replay-engine-state { display:inline-flex; align-items:center; gap:.35rem; margin:.1rem 0; }
+.metric-warn { color:oklch(52% .17 28); font-weight:700; }
+.metric-good { color:oklch(52% .14 152); font-weight:700; }
 @media(max-width:1100px) {
   .two-col,.overview { grid-template-columns:minmax(0,1.65fr) minmax(195px,1fr); }
   .header { align-items:flex-start; }

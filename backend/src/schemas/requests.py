@@ -28,3 +28,14 @@ class ScheduleRequest(RunRequest):
     recipient: str = Field(min_length=1, max_length=100)
     first_at: datetime
     repeat_daily: bool = False
+
+class ReplayUpload(Request):
+    name: str = Field(min_length=1, max_length=120)
+    filename: str = Field(min_length=1, max_length=160)
+    ticket_csv: str = Field(min_length=1, max=2_000_000)
+    shift_csv: str = Field(min_length=1, max=2_000_000)
+    parent_id: int | None = Field(default=None, gt=0)
+
+class ReplayRunCreate(Request):
+    source_id: int = Field(gt=0)
+    name: str = Field(default='补录回放', min_length=1, max_length=120)

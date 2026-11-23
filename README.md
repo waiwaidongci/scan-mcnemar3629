@@ -63,6 +63,22 @@ docker compose exec -T backend python -m scripts.seed_demo
 | 后台 | 独立 Python worker，通过 Redis 唤醒，从数据库租约领取计算，CSV 写入共享卷。 |
 | 数据 | PostgreSQL 16 存储批次、运行与审计。`backend/scripts/seed_demo.py` 可安全重复执行。 |
 
+## 补录回放双引擎
+
+财务要评估换用候选引擎 B 后补录是否会积压，用同一份到票记录和班次名额分别回放 A、B 两套引擎。
+
+- **补录数据源**：一次导入到票记录、班次名额两份 UTF-8 CSV，保留版本和 SHA-256 指纹。到票时间或判定更新后再次导入，按最早受影响班次计算重算边界，更早班次结果原样保留（结果表以「保留旧结果」标记）。
+- **补录回放**：一次提交同时创建 A、B 两个后台运行。只有引擎未通过的票进入该引擎待补队列，按到票时间升序、同刻按票号升序处理；当班名额用完结转下一班；到票班次的下一班结束仍未补录即记超时，超时后补录仍保留标记。
+- **中断续跑**：worker 每跑完一个班次就把检查点（待补队列、已超时票号、已完成班次）落库；进程中断后凭租约重新领取，从最近班次边界接上，续跑结果与一次跑完完全一致。
+- **发布门禁**：两套引擎都计算完成并生成导出后才一次性发布验收页面和 CSV；发布后晚到的旧计算结果会被拦截（`stale_blocked`）且不覆盖已发布结果。
+- **补录验收**：可查各班 A/B 班末积压、积压差、累计超时，以及按引擎和状态（超时未补、超时后补录、排队中、晚于末班等）筛选票据；导出含单引擎明细和双引擎对比两份 CSV。
+- 核心引擎 `backend/src/domain/replay.py` 仅依赖标准库，离线测试位于 `backend/tests/`，用 `python3 -I tests/test_replay_engine.py`、`test_replay_sources.py`、`test_replay_orchestration.py` 运行。
+
+### 回放 CSV 字段
+
+到票记录：`ticket_id, arrived_at, a_pass, b_pass`（判定填 true/false 或 是/否）。
+班次名额：`shift_id, start_at, end_at, quota_a, quota_b`（时间为 `YYYY-MM-DD HH:MM:SS`，名额为非负整数）。
+
 改动前端后执行 `docker compose up -d --build frontend`。改动接口或算法后执行 `docker compose up -d --build backend worker`，再刷新浏览器。如需保留数据，停止时执行 `docker compose down`。使用 `docker compose down -v --remove-orphans` 会清除该项目的数据库、Redis 和报表卷。
 
 `.env.example` 中的 `COMPOSE_PROJECT_NAME`、`FRONTEND_PORT`、`BACKEND_PORT`、`DB_PORT`、`APP_SUBNET` 控制项目隔离。`DB_PASSWORD`、`JWT_SECRET` 和 `SEED_DEMO` 为本机演示默认设置。后端 `constants/enums.py` 与前端 `src/constants/enums.js` 保持角色、运行状态和复核状态一致。项目许可证见 `LICENSE`。

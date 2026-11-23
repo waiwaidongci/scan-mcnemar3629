@@ -4,27 +4,32 @@ import {reviewPage} from './pages/review.js';
 import {inputs} from './pages/inputs.js';
 import {login} from './pages/login.js';
 import {overview} from './pages/overview.js';
+import {replayInputs} from './pages/replay-inputs.js';
+import {replayResults} from './pages/replay-results.js';
+import {replayRun} from './pages/replay-run.js';
 import {results} from './pages/results.js';
 import {runPage} from './pages/run.js';
-import {pages, route} from './router/routes.js';
+import {pageLabels, pages, route} from './router/routes.js';
 import {session} from './stores/session.js';
 import {workspace} from './stores/workspace.js';
 import {button, el, h, link, p} from './utils/dom.js';
 
 const app = document.getElementById('app');
-const views = {overview, inputs, run:runPage, results, review:reviewPage, delivery:deliveryPage};
+const views = {overview, inputs, run:runPage, results, review:reviewPage, delivery:deliveryPage,
+  'replay-inputs':replayInputs, 'replay-run':replayRun, 'replay-results':replayResults};
 let revision = 0;
 
 function shell(state, content) {
   const {spec} = workspace;
   const index = pages.indexOf(state.page);
+  const labels = [...spec.pages, ...pages.slice(spec.pages.length).map(page => pageLabels[page])];
   return el('div',{class:'shell'},el('aside',{class:'rail'},
     link(spec.title,'#overview',{class:'brand'}),
-    el('nav',{'aria-label':'业务模块'},pages.map((page,i)=>link(spec.pages[i],`#${page}`,{class:'nav-link',
+    el('nav',{'aria-label':'业务模块'},pages.map((page,i)=>link(labels[i],`#${page}`,{class:'nav-link',
       'aria-current':page===state.page ? 'page' : undefined}))),
     el('div',{class:'account'},p(`${ROLE[session.actor.role]} · ${session.actor.username}`),
       button('退出',{class:'quiet',onClick:()=>{session.signOut();render();}}))),
-    el('main',{class:'main',id:'main'},el('header',{class:'header'},h(1,spec.pages[index]),p(spec.title)), content));
+    el('main',{class:'main',id:'main'},el('header',{class:'header'},h(1,labels[index]),p(spec.title)), content));
 }
 
 async function render() {
